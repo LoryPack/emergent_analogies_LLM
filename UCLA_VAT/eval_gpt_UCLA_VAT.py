@@ -3,10 +3,19 @@ import numpy as np
 import pandas as pd
 import builtins
 import time
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--api_key', type=str, required=True)
+parser.add_argument('--engine', type=str, default='text-davinci-003')
+parser.add_argument('--max_N_trials', type=int, default=80)
+args = parser.parse_args()
 
 # GPT-3 settings
-openai.api_key = "FILL_IN_API_KEY_HERE"
-kwargs = { "engine":"text-davinci-003", "temperature":0, "max_tokens":10, "stop":"\n", "echo":True, "logprobs":1, }
+openai.api_key = args.api_key
+kwargs = { "engine":args.engine, "temperature":0, "max_tokens":10, "stop":"\n", "echo":True, "logprobs":1, }
+results_fname = f'./UCLA_VAT_results_{args.engine}.npz'
+
 
 # Load problems
 df = pd.read_excel (r'./UCLA_VAT.xlsx', sheet_name='UCLA_VAT')
@@ -22,9 +31,8 @@ all_synonym_correct_pred = []
 all_opposite_correct_pred = []
 all_function_correct_pred = []
 all_category_correct_pred = []
-results_fname = './UCLA_VAT_results.npz'
-# Evaluate 
-N_prob = len(A)
+# Evaluate
+N_prob = min(len(A), args.max_N_trials)
 prob_order = np.arange(N_prob)
 np.random.shuffle(prob_order)
 for p in range(N_prob):
