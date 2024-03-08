@@ -25,10 +25,19 @@ save_fname += '.npz'
 openai.api_key = args.api_key
 
 N_trials_per_prob_type = args.N_trials
-if args.sentence:
-	kwargs = { "engine":args.engine, "temperature":0, "max_tokens":40, "echo":False, "logprobs":1, }
+kwargs = {"temperature":0,  }
+
+if "gpt-3.5" or "gpt-4" in args.engine:
+	kwargs["model"] = args.engine
+	kwargs["logprobs"] = False
+	kwargs["max_tokens"] = 200
 else:
-	kwargs = { "engine":args.engine, "temperature":0, "max_tokens":40, "stop":"\n", "echo":False, "logprobs":1, }
+	kwargs["engine"] = args.engine
+	kwargs["logprobs"] = 1
+	kwargs["echo"] = True
+	kwargs["max_tokens"] = 40
+	if args.sentence:
+		kwargs["stop"]="\n"
 
 # Load all problems
 all_prob = np.load('./all_prob.npz', allow_pickle=True)['all_prob']
@@ -86,11 +95,23 @@ for p in range(N_prob_types):
 		response = []
 		while len(response) == 0:
 			try:
-				response = openai.Completion.create(prompt=prompt, **kwargs)
+				if "gpt-3.5" or "gpt-4" in args.engine:
+					response = openai.ChatCompletion.create(
+							messages=[
+								{"role": "system", "content": ""},
+								{"role": "user", "content": prompt}
+							], **kwargs)
+				else:
+					response = openai.Completion.create(prompt=prompt, **kwargs)
+				# print(response)
+				# print(response['choices'][0].message['content'])
 			except:
 				print('trying again...')
 				time.sleep(5)
-		prob_type_responses.append(response['choices'][0]['text'])	
+		if "gpt-3.5" or "gpt-4" in args.engine:
+			prob_type_responses.append(response['choices'][0].message['content'])
+		else:
+			prob_type_responses.append(response['choices'][0]['text'])
 	all_prob_type_responses.append(prob_type_responses)
 	# Save
 	# save_fname = './gpt3_letterstring_results'
